@@ -1,135 +1,252 @@
-import { loginFormValues, loginSchema } from "@/constants/schemas/login";
-import { theme } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "expo-router";
-import { useForm } from "react-hook-form";
+import { router } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import Button from "../../components/ui/Button";
-import Card from "../../components/ui/Card";
-import CheckboxField from "../../components/ui/CheckboxField";
-import Divider from "../../components/ui/Divider";
-import ControlledInput from "../../components/ui/Input";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { LoginFormValues, loginSchema } from "@/constants/schemas/login";
+import { tokens } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/hooks/useAuth";
+
+import { HeaderHero } from "@/components/common/HeaderHero";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function LoginScreen() {
-  const { control, handleSubmit, setValue, watch } = useForm<loginFormValues>({
-    defaultValues: { email: "", password: "", remember: false },
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
   });
 
-  const remember = watch("remember");
+  const { theme: t } = useTheme();
+  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const onSubmit = (data: loginFormValues) => {
-    // TODO: conecta con tu API/Firebase
-    console.log("login:", data);
-    // router.replace("/(tabs)/home"); // ejemplo
-  };
+  const { login, isAuthenticating, authError, clearError, refresh } = useAuth();
 
-  const onGoogle = () => {
-    // TODO: integra expo-auth-session (placeholder)
-    console.log("Google Sign-In");
-  };
+  const onSubmit = useCallback(
+    async (values: LoginFormValues) => {
+      try {
+        // await login(values);
+        console.log("Login with", values);
+      } catch {}
+    },
+    [login]
+  );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    clearError();
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [clearError, refresh]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Card>
-          <Text style={styles.brand}>Salud Ahora</Text>
-          <Text style={styles.title}>Iniciar sesión</Text>
-
-          <ControlledInput
-            control={control}
-            name="email"
-            label="Correo electrónico"
-            placeholder="tucorreo@ejemplo.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
+    <SafeAreaView style={[styles.safe, { backgroundColor: t.colors.bg }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
+          <HeaderHero
+            source={require("@/assets/images/logo-turno-enlace.png")}
           />
 
-          <ControlledInput
-            control={control}
-            name="password"
-            label="Contraseña"
-            placeholder="••••••••"
-            secureTextEntry
-          />
-
-          <View style={styles.rowBetween}>
-            <CheckboxField
-              value={remember}
-              onChange={(v) => setValue("remember", v)}
-              label="Recordarme"
-            />
-            <Pressable onPress={() => console.log("Forgot password")}>
-              <Text style={styles.linkMuted}>¿Olvidaste tu contraseña?</Text>
+          {/* Error banner */}
+          {authError ? (
+            <Pressable
+              style={[
+                styles.errorBanner,
+                {
+                  borderColor: t.colors.danger,
+                  backgroundColor: t.colors.danger,
+                },
+              ]}
+              onPress={clearError}
+            >
+              <Text style={[styles.errorText, { color: t.colors.danger }]}>
+                {authError}
+              </Text>
+              <Text style={[styles.errorHint, { color: t.colors.danger }]}>
+                Toca para cerrar
+              </Text>
             </Pressable>
+          ) : null}
+
+          {/* Card */}
+          <View style={[styles.card, { backgroundColor: t.colors.bg }]}>
+            <View
+              style={{
+                gap: 16,
+              }}
+            >
+              <View style={styles.header}>
+                <Text style={[styles.title, { color: t.colors.text }]}>
+                  Iniciar sesión
+                </Text>
+              </View>
+              {/* Email */}
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input
+                    label="Correo electrónico"
+                    placeholder="tucorreo@dominio.com"
+                    keyboardType="email-address"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.email?.message}
+                    helperText={undefined}
+                  />
+                )}
+              />
+
+              {/* Password */}
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input
+                    label="Contraseña"
+                    placeholder="••••••••"
+                    value={value}
+                    onChangeText={onChange}
+                    secureTextEntry={secureTextEntry}
+                    error={errors.password?.message}
+                  />
+                )}
+              />
+
+              {/* Submit */}
+              <Button fullWidth onPress={handleSubmit(onSubmit)}>
+                {isAuthenticating ? "Ingresando..." : "Iniciar sesión"}
+              </Button>
+            </View>
+
+            {/* Divider */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 9,
+              }}
+            >
+              <View
+                style={{
+                  width: "45%",
+                  height: 2,
+                  borderRadius: 4,
+                  backgroundColor: t.colors.text,
+                  marginVertical: 8,
+                }}
+              />
+              <Text style={[styles.subTitle, { color: t.colors.text }]}>O</Text>
+              <View
+                style={{
+                  width: "45%",
+                  height: 2,
+                  borderRadius: 2,
+                  backgroundColor: t.colors.text,
+                  marginVertical: 8,
+                }}
+              />
+            </View>
+            <View
+              style={{
+                gap: 16,
+              }}
+            >
+              {/* Google */}
+              <Button
+                fullWidth
+                variant="outline"
+                rounded="sm"
+                left={<Text>🟦</Text>}
+                onPress={() => {
+                  /* TODO google */
+                }}
+              >
+                Continuar con Google
+              </Button>
+
+              {/* Crear cuenta */}
+              <Button
+                fullWidth
+                variant="tonal"
+                rounded="sm"
+                onPress={() => router.push("/register")}
+              >
+                Crear cuenta
+              </Button>
+            </View>
           </View>
-
-          <Button title="Iniciar sesión" onPress={handleSubmit(onSubmit)} />
-
-          <Divider text="O" />
-
-          <Pressable style={styles.googleBtn} onPress={onGoogle}>
-            <Ionicons name="logo-google" size={18} color="#111827" />
-            <Text style={styles.googleText}>Continuar con Google</Text>
-          </Pressable>
-
-          <Link href="/(auth)/register" asChild>
-            <Pressable style={{ marginTop: theme.space.md }}>
-              <Button title="Crear cuenta" variant="outline" />
-            </Pressable>
-          </Link>
-        </Card>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.background },
-  container: {
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  content: {
     flexGrow: 1,
-    padding: theme.space.xl,
-    justifyContent: "center",
+    padding: tokens.spacing.xl,
+    justifyContent: "flex-start",
   },
-  brand: {
-    textAlign: "center",
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.space.sm,
-    letterSpacing: 0.2,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: theme.space.lg,
-    color: theme.colors.text,
+  header: { alignItems: "flex-start" },
+  title: { fontSize: 22, fontWeight: "700" },
+  subTitle: { fontSize: 16, fontWeight: "400" },
+  card: {
+    paddingHorizontal: tokens.spacing.sm,
+    gap: tokens.spacing.sm,
+    height: "65%",
+    justifyContent: "space-around",
   },
   rowBetween: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.space.lg,
   },
-  linkMuted: { color: theme.colors.muted, textDecorationLine: "underline" },
-  googleBtn: {
-    height: 46,
-    borderRadius: 12,
+  checkboxRow: { flexDirection: "row", alignItems: "center" },
+  errorBanner: {
+    padding: tokens.spacing.md,
+    borderRadius: tokens.radius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 10,
+    gap: 4,
   },
-  googleText: { fontWeight: "600", color: "#111827" },
+  errorText: { fontWeight: "600" },
+  errorHint: { opacity: 0.7, fontSize: 12 },
 });

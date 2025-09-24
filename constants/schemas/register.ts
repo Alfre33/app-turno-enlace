@@ -1,23 +1,34 @@
 import z from "zod";
 
+const passwordMessage =
+  "Password must include at least 8 characters, one number, and one uppercase letter";
+
 export const registerSchema = z
   .object({
-    firstName: z.string().min(2, "Ingresa tu nombre"),
-    lastName: z.string().min(2, "Ingresa tu apellido"),
-    email: z.string().email("Correo inválido"),
-    phone: z
-      .string()
-      .min(10, "Teléfono de 10 dígitos")
-      .max(15, "Demasiados dígitos"),
-    password: z.string().min(6, "Mínimo 6 caracteres"),
-    confirmPassword: z.string().min(6, "Confirma tu contraseña"),
-    accept: z.boolean().refine((v) => v, {
-      message: "Debes aceptar los Términos y la Política",
-    }),
+    fullName: z
+      .string({ required_error: "Full name is required" })
+      .trim()
+      .min(3, "Please enter your full name"),
+    email: z
+      .string({ required_error: "Email is required" })
+      .trim()
+      .email("Please enter a valid email"),
+    password: z
+      .string({ required_error: "Password is required" })
+      .min(8, passwordMessage)
+      .regex(/^(?=.*[A-Z])(?=.*\d).+$/, passwordMessage),
+    confirmPassword: z
+      .string({ required_error: "Confirm your password" })
+      .min(8, "Please confirm your password"),
+    acceptTerms: z
+      .boolean()
+      .refine((value) => value, {
+        message: "You must agree to the terms to continue",
+      }),
   })
   .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords must match",
     path: ["confirmPassword"],
-    message: "Las contraseñas no coinciden",
   });
 
-export type registerFormValues = z.infer<typeof registerSchema>;
+export type RegisterFormValues = z.infer<typeof registerSchema>;

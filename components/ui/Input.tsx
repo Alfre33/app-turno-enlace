@@ -1,71 +1,96 @@
-import { theme } from "@/constants/theme";
-import { Control, Controller } from "react-hook-form";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-type ControlledInputProps = {
-  control: Control<any>;
-  name: string;
+import { useTheme } from "@/contexts/ThemeContext";
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+interface Props {
   label?: string;
   placeholder?: string;
+  value?: string;
+  onChangeText?: (t: string) => void;
   secureTextEntry?: boolean;
-  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-};
-
-export default function ControlledInput({
-  control,
-  name,
-  label,
-  placeholder,
-  secureTextEntry,
-  keyboardType = "default",
-  autoCapitalize = "none",
-}: ControlledInputProps) {
-  return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
-        <View style={{ marginBottom: theme.space.md }}>
-          {label ? <Text style={styles.label}>{label}</Text> : null}
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={placeholder}
-            keyboardType={keyboardType}
-            secureTextEntry={secureTextEntry}
-            autoCapitalize={autoCapitalize}
-            style={[styles.input, !!error && styles.inputError]}
-            placeholderTextColor={theme.colors.muted}
-          />
-          {error ? <Text style={styles.error}>{error.message}</Text> : null}
-        </View>
-      )}
-    />
-  );
+  keyboardType?: "default"|"email-address"|"number-pad"|"phone-pad";
+  error?: string;
+  helperText?: string;
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  disabled?: boolean;
 }
 
+export const Input: React.FC<Props> = ({
+  label, placeholder, value, onChangeText,
+  secureTextEntry, keyboardType="default", error, helperText, left, right, disabled,
+}) => {
+  const { theme } = useTheme();
+  const [focus, setFocus] = useState(false);
+  const [hide, setHide] = useState(!!secureTextEntry);
+
+  const borderColor = error
+    ? theme.colors.danger
+    : focus
+    ? theme.colors.primary
+    : theme.colors.border;
+
+  return (
+    <View style={{ width: "100%" }}>
+      {label && (
+        <Text style={{ color: theme.colors.text, marginBottom: 6, fontWeight: "600" }}>
+          {label}
+        </Text>
+      )}
+
+      <View
+        style={[
+          styles.field,
+          {
+            backgroundColor: theme.colors.inputBg,
+            borderColor,
+            borderRadius: theme.tokens.radius.md,
+            height: 48,
+          },
+        ]}
+      >
+        {left && <View style={{ marginLeft: 10 }}>{left}</View>}
+
+        <TextInput
+          style={{
+            flex: 1,
+            color: theme.colors.text,
+            paddingHorizontal: 12,
+          }}
+          placeholder={placeholder}
+          placeholderTextColor={theme.colors.inputPlaceholder}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          secureTextEntry={hide}
+          keyboardType={keyboardType}
+          editable={!disabled}
+        />
+
+        {secureTextEntry && (
+          <Pressable onPress={() => setHide((v) => !v)} style={{ paddingHorizontal: 10 }}>
+            <Text style={{ color: theme.colors.textMuted }}>
+              {hide ? "Mostrar" : "Ocultar"}
+            </Text>
+          </Pressable>
+        )}
+
+        {right && <View style={{ marginRight: 10 }}>{right}</View>}
+      </View>
+
+      {!!error ? (
+        <Text style={{ color: theme.colors.danger, marginTop: 6, fontSize: 12 }}>{error}</Text>
+      ) : helperText ? (
+        <Text style={{ color: theme.colors.textMuted, marginTop: 6, fontSize: 12 }}>{helperText}</Text>
+      ) : null}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  label: {
-    marginBottom: 6,
-    color: theme.colors.text,
-    fontWeight: "600",
-  },
-  input: {
-    height: 46,
-    borderRadius: 12,
+  field: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 14,
-    backgroundColor: "#F8FAFC",
-    color: theme.colors.text,
-  },
-  inputError: {
-    borderColor: theme.colors.danger,
-  },
-  error: {
-    marginTop: 6,
-    color: theme.colors.danger,
-    fontSize: 12,
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
