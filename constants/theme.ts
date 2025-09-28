@@ -30,7 +30,7 @@ export const palette = {
     inputPlaceholder: "#94A3B8",
   },
   dark: {
-    primary: "#3B82F6",       // azul 500 para contraste
+    primary: "#3B82F6",       // azul 500
     primaryOn: "#0B1220",
     primaryMuted: "#1E3A8A",
     bg: "#0B1220",
@@ -43,3 +43,32 @@ export const palette = {
     inputPlaceholder: "#64748B",
   },
 };
+
+const mapPaletteToColors = (p: typeof palette.light) => ({
+  background: p.bg,
+  card: p.card,
+  text: p.text,
+  muted: p.textMuted,
+  border: p.border,
+  primary: p.primary,
+  primaryText: p.primaryOn,    
+  danger: p.danger,
+  inputBg: p.inputBg,
+  inputPlaceholder: p.inputPlaceholder,
+  shadowColor: tokens.shadow.lg.shadowColor,
+});
+
+export const createTheme = (mode: ThemeMode = "light") => {
+  const p = palette[mode];
+  return {
+    colors: mapPaletteToColors(p),
+    space: tokens.spacing,
+    radius: tokens.radius,
+    font: tokens.font,
+    shadow: tokens.shadow,
+    mode,
+  } as const;
+};
+
+
+export const theme = createTheme("light");

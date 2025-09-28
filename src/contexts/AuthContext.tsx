@@ -1,11 +1,4 @@
-
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   User,
   onAuthStateChanged,
@@ -14,54 +7,24 @@ import {
   signOut,
   sendEmailVerification,
 } from "firebase/auth";
-import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { auth } from "@/src/libs/firebase";
 
-type LoginPayload = Readonly<{
-  email: string;
-  password: string;
-  remember?: boolean;
-}>;
+type LoginPayload = { email: string; password: string; remember?: boolean };
 
 type AuthContextType = {
   user: User | null;
-  loading: boolean; 
-  isInitializing: boolean;
-  
+  loading: boolean;
   login: (p: LoginPayload) => Promise<void>;
-  register: (p: Omit<LoginPayload, "remember">) => Promise<void>;
+  register: (p: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
-  // estados UI
   isAuthenticating: boolean;
   authError: string | null;
 };
 
-export const AuthContext = createContext<AuthContextType | null>(null);
-
-async function setRememberFlag(remember: boolean) {
-  if (!remember) return;
-  if (Platform.OS === "web") return;
-  try {
-    const ok = await SecureStore.isAvailableAsync();
-    if (ok) await SecureStore.setItemAsync("remember", "1");
-  } catch {
-    
-  }
-}
-
-async function clearRememberFlag() {
-  if (Platform.OS === "web") return;
-  try {
-    const ok = await SecureStore.isAvailableAsync();
-    if (ok) await SecureStore.deleteItemAsync("remember");
-  } catch {
-    
-  }
-}
-
+const AuthContext = createContext<AuthContextType | null>(null);
 
 function mapFirebaseError(code?: string) {
   switch (code) {
@@ -89,11 +52,10 @@ function mapFirebaseError(code?: string) {
   }
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // se apaga cuando onAuthStateChanged responde
+  const [loading, setLoading] = useState(true);
+
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -107,42 +69,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const clearError = () => setAuthError(null);
 
-  
-  const login: (p: LoginPayload) => Promise<void> = async ({
-    email,
-    password,
-    remember = false,
-  }) => {
+  const login = async ({ email, password, remember }: LoginPayload) => {
     setIsAuthenticating(true);
     setAuthError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      await setRememberFlag(remember);
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      setAuthError(mapFirebaseError(code));
-      throw err; 
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      if (cred.user && !cred.user.emailVerified) {
+        try {
+          await sendEmailVerification(cred.user);
+        } catch {}
+  
+        throw { code: "auth/email-not-verified" };
+      }
+
+      if (remember) await SecureStore.setItemAsync("remember", "1");
+    } catch (e: any) {
+      const code = e?.code as string | undefined;
+      setAuthError(
+        code === "auth/email-not-verified"
+          ? "Verifica tu correo para continuar. Te enviamos un email."
+          : mapFirebaseError(code)
+      );
+      throw e; 
     } finally {
       setIsAuthenticating(false);
     }
   };
 
-  const register: (p: Omit<LoginPayload, "remember">) => Promise<void> = async ({
-    email,
-    password,
-  }) => {
+  const register = async ({ email, password }: LoginPayload) => {
     setIsAuthenticating(true);
     setAuthError(null);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      
+  
       try {
         await sendEmailVerification(cred.user);
       } catch {}
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      setAuthError(mapFirebaseError(code));
-      throw err;
+    } catch (e: any) {
+      setAuthError(mapFirebaseError(e?.code));
+      throw e;
     } finally {
       setIsAuthenticating(false);
     }
@@ -150,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     setAuthError(null);
-    await clearRememberFlag();
+    await SecureStore.deleteItemAsync("remember");
     await signOut(auth);
   };
 
@@ -161,11 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const value = useMemo<AuthContextType>(
+  const value = useMemo(
     () => ({
       user,
       loading,
-      isInitializing: loading, 
       login,
       register,
       logout,
@@ -180,8 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuthContext = () => {
+export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
