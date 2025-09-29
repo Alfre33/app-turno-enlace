@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
@@ -22,14 +22,13 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { HeaderHero } from "@/components/common/HeaderHero";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+// import { Input } from "@/components/ui/Input"; // <- quitamos para evitar problemas de ref
 
 export default function LoginScreen() {
   const {
     control,
     handleSubmit,
-    setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -47,9 +46,10 @@ export default function LoginScreen() {
   const onSubmit = useCallback(
     async (values: LoginFormValues) => {
       try {
-        // await login(values);
-        console.log("Login with", values);
-      } catch {}
+        await login(values); 
+      } catch {
+        
+      }
     },
     [login]
   );
@@ -78,9 +78,7 @@ export default function LoginScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         >
-          <HeaderHero
-            source={require("@/assets/images/logo-turno-enlace.png")}
-          />
+          <HeaderHero source={require("@/assets/images/logo-turno-enlace.png")} />
 
           {/* Error banner */}
           {authError ? (
@@ -89,7 +87,7 @@ export default function LoginScreen() {
                 styles.errorBanner,
                 {
                   borderColor: t.colors.danger,
-                  backgroundColor: t.colors.danger,
+                  backgroundColor: t.colors.danger + "22",
                 },
               ]}
               onPress={clearError}
@@ -105,30 +103,46 @@ export default function LoginScreen() {
 
           {/* Card */}
           <View style={[styles.card, { backgroundColor: t.colors.bg }]}>
-            <View
-              style={{
-                gap: 16,
-              }}
-            >
+            <View style={{ gap: 16 }}>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: t.colors.text }]}>
                   Iniciar sesión
                 </Text>
               </View>
+
               {/* Email */}
               <Controller
                 control={control}
                 name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label="Correo electrónico"
-                    placeholder="tucorreo@dominio.com"
-                    keyboardType="email-address"
-                    value={value}
-                    onChangeText={onChange}
-                    error={errors.email?.message}
-                    helperText={undefined}
-                  />
+                render={({ field: { onChange, value } }) => (
+                  <View style={{ gap: 6 }}>
+                    <Text style={{ color: t.colors.text }}>Correo electrónico</Text>
+                    <TextInput
+                      ref={emailRef}
+                      placeholder="tucorreo@dominio.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      returnKeyType="next"
+                      onSubmitEditing={() => passwordRef.current?.focus()}
+                      value={value}
+                      onChangeText={(v) => {
+                        if (authError) clearError();
+                        onChange(v);
+                      }}
+                      style={[
+                        styles.input,
+                        {
+                          borderColor: errors.email ? t.colors.danger : "#ccc",
+                          color: t.colors.text,
+                        },
+                      ]}
+                    />
+                    {!!errors.email?.message && (
+                      <Text style={{ color: t.colors.danger }}>
+                        {errors.email.message}
+                      </Text>
+                    )}
+                  </View>
                 )}
               />
 
@@ -136,58 +150,63 @@ export default function LoginScreen() {
               <Controller
                 control={control}
                 name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label="Contraseña"
-                    placeholder="••••••••"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry={secureTextEntry}
-                    error={errors.password?.message}
-                  />
+                render={({ field: { onChange, value } }) => (
+                  <View style={{ gap: 6 }}>
+                    <Text style={{ color: t.colors.text }}>Contraseña</Text>
+                    <TextInput
+                      ref={passwordRef}
+                      placeholder="••••••••"
+                      secureTextEntry={secureTextEntry}
+                      returnKeyType="done"
+                      onSubmitEditing={handleSubmit(onSubmit)}
+                      value={value}
+                      onChangeText={(v) => {
+                        if (authError) clearError();
+                        onChange(v);
+                      }}
+                      style={[
+                        styles.input,
+                        {
+                          borderColor: errors.password ? t.colors.danger : "#ccc",
+                          color: t.colors.text,
+                        },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={() => setSecureTextEntry((s) => !s)}
+                      style={{ alignSelf: "flex-end", paddingVertical: 4 }}
+                    >
+                      <Text style={{ color: t.colors.text, opacity: 0.8 }}>
+                        {secureTextEntry ? "Mostrar" : "Ocultar"} contraseña
+                      </Text>
+                    </Pressable>
+                    {!!errors.password?.message && (
+                      <Text style={{ color: t.colors.danger }}>
+                        {errors.password.message}
+                      </Text>
+                    )}
+                  </View>
                 )}
               />
 
               {/* Submit */}
-              <Button fullWidth onPress={handleSubmit(onSubmit)}>
-                {isAuthenticating ? "Ingresando..." : "Iniciar sesión"}
+              <Button
+                fullWidth
+                disabled={isAuthenticating || isSubmitting}
+                onPress={handleSubmit(onSubmit)}
+              >
+                {isAuthenticating || isSubmitting ? "Ingresando..." : "Iniciar sesión"}
               </Button>
             </View>
 
             {/* Divider */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 9,
-              }}
-            >
-              <View
-                style={{
-                  width: "45%",
-                  height: 2,
-                  borderRadius: 4,
-                  backgroundColor: t.colors.text,
-                  marginVertical: 8,
-                }}
-              />
+            <View style={styles.dividerRow}>
+              <View style={[styles.divider, { backgroundColor: t.colors.text }]} />
               <Text style={[styles.subTitle, { color: t.colors.text }]}>O</Text>
-              <View
-                style={{
-                  width: "45%",
-                  height: 2,
-                  borderRadius: 2,
-                  backgroundColor: t.colors.text,
-                  marginVertical: 8,
-                }}
-              />
+              <View style={[styles.divider, { backgroundColor: t.colors.text }]} />
             </View>
-            <View
-              style={{
-                gap: 16,
-              }}
-            >
+
+            <View style={{ gap: 16 }}>
               {/* Google */}
               <Button
                 fullWidth
@@ -195,7 +214,7 @@ export default function LoginScreen() {
                 rounded="sm"
                 left={<Text>🟦</Text>}
                 onPress={() => {
-                  /* TODO google */
+                  /* TODO: login con Google */
                 }}
               >
                 Continuar con Google
@@ -206,7 +225,7 @@ export default function LoginScreen() {
                 fullWidth
                 variant="tonal"
                 rounded="sm"
-                onPress={() => router.push("/register")}
+                onPress={() => router.push("/(auth)/register")}
               >
                 Crear cuenta
               </Button>
@@ -225,6 +244,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: tokens.spacing.xl,
     justifyContent: "flex-start",
+    gap: tokens.spacing.md,
   },
   header: { alignItems: "flex-start" },
   title: { fontSize: 22, fontWeight: "700" },
@@ -232,15 +252,22 @@ const styles = StyleSheet.create({
   card: {
     paddingHorizontal: tokens.spacing.sm,
     gap: tokens.spacing.sm,
-    height: "65%",
+    minHeight: "60%",
     justifyContent: "space-around",
   },
-  rowBetween: {
+  dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 9,
+    marginTop: tokens.spacing.sm,
   },
-  checkboxRow: { flexDirection: "row", alignItems: "center" },
+  divider: {
+    width: "45%",
+    height: 2,
+    borderRadius: 2,
+    marginVertical: 8,
+  },
   errorBanner: {
     padding: tokens.spacing.md,
     borderRadius: tokens.radius.md,
@@ -248,5 +275,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   errorText: { fontWeight: "600" },
-  errorHint: { opacity: 0.7, fontSize: 12 },
+  errorHint: { opacity: 0.8, fontSize: 12 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+  },
 });

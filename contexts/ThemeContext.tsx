@@ -10,7 +10,7 @@ function buildTheme(mode: ThemeMode) {
     mode,
     colors: c,
     tokens,
-    // helpers
+
     pressableOpacity: 0.9,
   };
 }
