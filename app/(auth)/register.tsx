@@ -65,11 +65,11 @@ export default function RegisterScreen() {
       try {
         console.log("Login with", values);
 
-        // await registerUser({
-        //   fullName: values.fullName,
-        //   email: values.email,
-        //   password: values.password,
-        // });
+        await registerUser({
+          // fullName: values.fullName,
+          email: values.email,
+          password: values.password,
+        });
       } catch {}
     },
     [registerUser]
@@ -244,7 +244,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  content: { flexGrow: 1, padding: tokens.spacing.xl},
+  content: { flexGrow: 1, padding: tokens.spacing.xl },
   header: { marginVertical: tokens.spacing.md },
   title: { fontSize: 22, fontWeight: "700" },
   card: {

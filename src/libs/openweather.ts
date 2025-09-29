@@ -1,8 +1,9 @@
-// src/libs/openweather.ts
+import Constants from "expo-constants";
 import { fetchJson } from "./http";
 
-const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
-const BASE = "https://api.openweathermap.org/data/2.5";
+const extra = Constants.expoConfig?.extra || {};
+const API_KEY = extra.openWeatherApiKey;
+const BASE = process.env.EXPO_PUBLIC_OPENWEATHER_URL;
 
 export type WeatherResp = {
   name: string;
@@ -14,17 +15,22 @@ export type WeatherResp = {
 
 export function assertApiKey() {
   if (!API_KEY) {
-    throw { code: "missing_key", message: "Falta EXPO_PUBLIC_OPENWEATHER_API_KEY en .env" };
+    throw {
+      code: "missing_key",
+      message: "Falta EXPO_PUBLIC_OPENWEATHER_API_KEY en .env",
+    };
   }
 }
 
-export async function getCurrentWeatherByCity(city: string, lang: "es" | "en" = "es"): Promise<WeatherResp> {
+export async function getCurrentWeatherByCity(
+  city: string,
+  lang: "es" | "en" = "es"
+): Promise<WeatherResp> {
   assertApiKey();
   const q = encodeURIComponent(city.trim());
   const url = `${BASE}/weather?q=${q}&appid=${API_KEY}&units=metric&lang=${lang}`;
   return fetchJson<WeatherResp>(url);
 }
-
 
 export function iconToEmoji(icon?: string) {
   if (!icon) return "☁️";
