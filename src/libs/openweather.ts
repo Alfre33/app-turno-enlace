@@ -1,9 +1,21 @@
-import Constants from "expo-constants";
 import { fetchJson } from "./http";
+import { buildWeatherUrl, iconToEmoji as coreIconToEmoji } from './openweather_core';
 
-const extra = Constants.expoConfig?.extra || {};
-const API_KEY = extra.openWeatherApiKey;
 const BASE = process.env.EXPO_PUBLIC_OPENWEATHER_URL;
+
+function getConstantsExtra() {
+  // lazy require to avoid importing expo ESM modules at test/require time
+  // (Jest may choke on expo virtual modules). This keeps runtime behavior
+  // identical but defers loading until a function actually needs it.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const Constants = require("expo-constants");
+  return Constants.expoConfig?.extra || {};
+}
+
+function getApiKeyFromConstants() {
+  const extra = getConstantsExtra();
+  return extra.openWeatherApiKey;
+}
 
 export type WeatherResp = {
   name: string;
@@ -14,6 +26,7 @@ export type WeatherResp = {
 };
 
 export function assertApiKey() {
+  const API_KEY = getApiKeyFromConstants();
   if (!API_KEY) {
     throw {
       code: "missing_key",
@@ -21,25 +34,18 @@ export function assertApiKey() {
     };
   }
 }
-
+// hice una modificasion en ApiKey para los test, si no esta la key tira error
+// si no esta la key tira error
 export async function getCurrentWeatherByCity(
   city: string,
   lang: "es" | "en" = "es"
 ): Promise<WeatherResp> {
-  assertApiKey();
-  const q = encodeURIComponent(city.trim());
-  const url = `${BASE}/weather?q=${q}&appid=${API_KEY}&units=metric&lang=${lang}`;
+  const API_KEY = getApiKeyFromConstants();
+  if (!API_KEY) throw { code: "missing_key", message: "Falta API key" };
+  const url = buildWeatherUrl(BASE || '', API_KEY, city, lang);
   return fetchJson<WeatherResp>(url);
 }
 
 export function iconToEmoji(icon?: string) {
-  if (!icon) return "☁️";
-  if (icon.startsWith("01")) return "☀️";
-  if (icon.startsWith("02")) return "🌤️";
-  if (icon.startsWith("03") || icon.startsWith("04")) return "☁️";
-  if (icon.startsWith("09") || icon.startsWith("10")) return "🌧️";
-  if (icon.startsWith("11")) return "⛈️";
-  if (icon.startsWith("13")) return "❄️";
-  if (icon.startsWith("50")) return "🌫️";
-  return "☁️";
+  return coreIconToEmoji(icon);
 }
