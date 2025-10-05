@@ -1,9 +1,8 @@
 import { loginSchema } from '@/constants/schemas/login';
-
-// Prevent importing components that pull ESM-only packages (expo-image)
+// Previne importar componentes que usan paquetes ESM-only (expo-image)
 jest.mock('@/components/common/HeaderHero', () => ({ HeaderHero: () => null }));
 
-// Prevent importing the real auth/context which pulls firebase ESM sources
+// Previne importar el contexto real de autenticación que utiliza fuentes ESM de Firebase
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     login: jest.fn(),

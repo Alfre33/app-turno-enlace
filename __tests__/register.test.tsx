@@ -16,7 +16,7 @@ jest.mock('../hooks/useAuth', () => ({
 }));
 
 jest.mock('../components/common/HeaderHero', () => ({ HeaderHero: () => null }));
-// Mock the shared Input component to a simple react-native TextInput-like wrapper
+// Simula el componente Input para evitar dependencias de ESM-only (expo-image)
 jest.mock('../components/ui/Input', () => ({
   Input: ({ placeholder, value, onChangeText, error }: any) => {
     const ReactLocal = require('react');
@@ -28,11 +28,11 @@ jest.mock('../components/ui/Input', () => ({
 describe('Register screen (RTL)', () => {
   beforeEach(() => jest.clearAllMocks());
   it('exports the component and register schema validates expected shape', async () => {
-    // Ensure the component module exports a default component
+    // asegura que el módulo del componente exporta un componente predeterminado
     const mod = require('../app/(auth)/register');
     expect(mod.default).toBeDefined();
 
-    // Validate register schema separately (unit test for schema)
+    // Valida el esquema de registro por separado (prueba unitaria para el esquema)
     const { registerSchema } = require('../constants/schemas/register');
     const ok = registerSchema.safeParse({
       fullName: 'Juan Pérez',
