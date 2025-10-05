@@ -1,3 +1,5 @@
+// la parte de validad insercion y consulta de datos esta en appointments.service.test.ts.
+
 jest.mock('firebase/firestore', () => {
   function Timestamp(value: any) {
     this._d = value;
