@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +24,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { HeaderHero } from "@/components/common/HeaderHero";
 import { Button } from "@/components/ui/Button";
-// import { Input } from "@/components/ui/Input"; // <- quitamos para evitar problemas de ref
 
 export default function LoginScreen() {
   const {
@@ -46,9 +47,19 @@ export default function LoginScreen() {
   const onSubmit = useCallback(
     async (values: LoginFormValues) => {
       try {
-        await login(values); 
+        await login(values); // valida contra Firebase
+
+        // ✅ mensaje de éxito (Android -> Toast, iOS/Web -> Alert)
+        if (Platform.OS === "android") {
+          ToastAndroid.show("Usuario autenticado exitosamente", ToastAndroid.SHORT);
+        } else {
+          Alert.alert("Éxito", "Usuario autenticado exitosamente");
+        }
+
+        // Navega al área privada. Pasamos un flag por si quieres mostrar banner en Home.
+        router.replace("/(app)/?welcome=1");
       } catch {
-        
+        // El contexto ya setea authError
       }
     },
     [login]
@@ -114,7 +125,7 @@ export default function LoginScreen() {
               <Controller
                 control={control}
                 name="email"
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <View style={{ gap: 6 }}>
                     <Text style={{ color: t.colors.text }}>Correo electrónico</Text>
                     <TextInput
@@ -129,6 +140,7 @@ export default function LoginScreen() {
                         if (authError) clearError();
                         onChange(v);
                       }}
+                      onBlur={onBlur}
                       style={[
                         styles.input,
                         {
@@ -150,7 +162,7 @@ export default function LoginScreen() {
               <Controller
                 control={control}
                 name="password"
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <View style={{ gap: 6 }}>
                     <Text style={{ color: t.colors.text }}>Contraseña</Text>
                     <TextInput
@@ -164,6 +176,7 @@ export default function LoginScreen() {
                         if (authError) clearError();
                         onChange(v);
                       }}
+                      onBlur={onBlur}
                       style={[
                         styles.input,
                         {
@@ -207,20 +220,16 @@ export default function LoginScreen() {
             </View>
 
             <View style={{ gap: 16 }}>
-              {/* Google */}
               <Button
                 fullWidth
                 variant="outline"
                 rounded="sm"
                 left={<Text>🟦</Text>}
-                onPress={() => {
-                  /* TODO: login con Google */
-                }}
+                onPress={() => {}}
               >
                 Continuar con Google
               </Button>
 
-              {/* Crear cuenta */}
               <Button
                 fullWidth
                 variant="tonal"
