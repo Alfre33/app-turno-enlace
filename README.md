@@ -14,8 +14,11 @@
 - 🔐 **Autenticación Segura**: Login y registro con Firebase Authentication
 - 🔒 **Almacenamiento Cifrado**: Datos sensibles protegidos con Expo SecureStore
 - 🌤️ **Integración de APIs**: Consumo de OpenWeather API para información climática
+- 📂 **Gestión de Citas**: CRUD completo para administrar citas médicas
+- 📂 **Gestión de Categorías**: CRUD completo para organizar categorías de citas
 - 📱 **Diseño Responsivo**: Interfaz optimizada para dispositivos móviles
 - 🛡️ **Seguridad Avanzada**: Implementación de mejores prácticas de seguridad móvil
+- ✅ **Testing Completo**: Pruebas unitarias y de integración con Jest
 
 ## Tecnologías Utilizadas
 
@@ -66,21 +69,38 @@
 
 ### Funcionalidades
 
-<table>
-  <tr>
-    <td align="left">
-      <img src="assets/screenshots/clima-pueb.jpg" width="200"/>
-      <img src="assets/screenshots/clima-teh.jpg" width="200"/>
-      <br />
-      <sub><b>🌤️ Información Climática</b></sub>
-    </td>
-    <td align="left">
-      <img src="assets/screenshots/profile.jpg" width="200"/>
-      <br />
-      <sub><b>👤 Perfil de Usuario</b></sub>
-    </td>
-  </tr>
-</table>
+### 🌤️ Información Climática
+
+<div align="left">
+  <img src="assets/screenshots/clima-pueb.jpg" width="200" alt="clima-1"/>
+  <img src="assets/screenshots/clima-teh.jpg" width="200"  alt="clima-2"/>
+</div>
+
+### 👤 Perfil de Usuario
+
+<div align="left">
+ <img src="assets/screenshots/profile.jpg" width="200" alt="profile"/>
+</div>
+
+### 📂 CRUD de Categorías
+
+<div align="left">
+ <img src="assets/screenshots/create-category.jpg" width="200" alt="create-category"/>
+ <img src="assets/screenshots/read-category.jpg" width="200" alt="read-category"/>
+ <img src="assets/screenshots/update-category.jpg" width="200" alt="update-category"/>
+ <img src="assets/screenshots/delete-category.jpg" width="200" alt="delete-category"/>
+ <img src="assets/screenshots/select-category-by-appoinment.jpg" width="200" alt="select-category"/>
+</div>
+
+### 📅 CRUD de Citas
+
+<div align="left">
+ <img src="assets/screenshots/create-appoinment.jpg" width="200" alt="create-appoinment"/>
+ <img src="assets/screenshots/read-appoinment.jpg" width="200" alt="read-appoinment"/>
+ <img src="assets/screenshots/update-appoinment.jpg" width="200" alt="update-appoinment"/>
+ <img src="assets/screenshots/delete-appoinment.jpg" width="200" alt="delete-appoinment"/>
+ <img src="assets/screenshots/select-date-by-appoinment.jpg" width="200" alt="select-date"/>
+</div>
 
 ## Instalación y Configuración
 
@@ -144,27 +164,97 @@
 ## Estructura del Proyecto
 
 ```
-Citas-Medicas/
+app-turno-enlace/
 ├── app/                        # Rutas y pantallas principales
 │   ├── (app)/                 # Pantallas autenticadas
-│   │   └── index.tsx         # Pantalla principal con clima
+│   │   ├── index.tsx         # Pantalla principal con clima
+│   │   ├── profile.tsx       # Pantalla de perfil
+│   │   ├── weather.tsx       # Pantalla de clima
+│   │   ├── appointments/     # CRUD de citas
+│   │   │   ├── index.tsx    # Lista de citas
+│   │   │   └── [id].tsx     # Detalle/edición de cita
+│   │   └── categories/       # CRUD de categorías
+│   │       ├── index.tsx    # Lista de categorías
+│   │       └── [id].tsx     # Detalle/edición de categoría
 │   ├── (auth)/               # Pantallas de autenticación
 │   │   ├── login.tsx         # Pantalla de inicio de sesión
 │   │   ├── register.tsx      # Pantalla de registro
 │   │   └── welcome.tsx       # Pantalla de bienvenida
 │   └── _layout.tsx           # Layout principal con guards
+├── src/
+│   ├── services/             # Servicios de datos
+│   │   ├── appointmentsService.ts  # CRUD de citas
+│   │   ├── categoriesService.ts    # CRUD de categorías
+│   │   └── authService.ts          # Autenticación
+│   ├── libs/                 # Librerías y configuraciones
+│   │   ├── firebase.ts       # Configuración de Firebase
+│   │   ├── openweather.ts    # Cliente de OpenWeather
+│   │   └── http.ts           # Cliente HTTP
+│   └── types/                # Tipos TypeScript
+│       └── models.ts         # Modelos de datos
 ├── contexts/                  # Context providers
 │   ├── AuthContext.tsx       # Context de autenticación
 │   └── ThemeContext.tsx      # Context de temas
-├── src/
-│   └── libs/
-│       └── firebase.ts       # Configuración de Firebase
+├── __tests__/                # Pruebas unitarias
+│   ├── appointments.service.test.ts
+│   ├── categories.service.test.ts
+│   ├── login.test.tsx
+│   ├── register.test.tsx
+│   └── openweather.test.ts
+├── __mocks__/                # Mocks para testing
 ├── constants/                # Constantes y configuraciones
 ├── hooks/                    # Custom hooks
+├── components/               # Componentes reutilizables
 ├── .env                      # Variables de entorno (no incluido)
+├── jest.config.js           # Configuración de Jest
 ├── app.config.ts            # Configuración de Expo
 └── package.json
 ```
+
+## Funcionalidades CRUD
+
+### Gestión de Categorías
+
+La aplicación permite crear, leer, actualizar y eliminar categorías para organizar las citas médicas:
+
+```typescript
+// Servicios disponibles
+- getCategories(): Obtener todas las categorías
+- subscribeToCategories(callback): Suscripción en tiempo real
+- createCategory(data): Crear nueva categoría
+- updateCategory(id, data): Actualizar categoría existente
+- deleteCategory(id): Eliminar categoría
+```
+
+**Características:**
+
+- 📂 Lista de categorías con colores personalizados
+- ➕ Crear nuevas categorías
+- ✏️ Editar categorías existentes
+- 🗑️ Eliminar categorías
+- 🔄 Sincronización en tiempo real con Firebase
+
+### Gestión de Citas
+
+La aplicación permite administrar citas médicas de forma completa:
+
+```typescript
+// Servicios disponibles
+- getAppointments(): Obtener todas las citas
+- subscribeToAppointments(callback): Suscripción en tiempo real
+- createAppointment(data): Crear nueva cita
+- updateAppointment(id, data): Actualizar cita existente
+- deleteAppointment(id): Eliminar cita
+```
+
+**Características:**
+
+- 📅 Lista de citas organizadas por fecha
+- ➕ Crear nuevas citas con categoría
+- ✏️ Editar citas existentes
+- 🗑️ Eliminar citas
+- 🔄 Sincronización en tiempo real con Firebase
+- 🏷️ Asociación con categorías
 
 ## Integración de APIs
 
@@ -183,6 +273,27 @@ const login = async ({ email, password, remember }) => {
   } catch (error) {
     // Manejo de errores
   }
+};
+```
+
+### Firebase Firestore
+
+Almacenamiento y sincronización de datos en tiempo real:
+
+```typescript
+// Ejemplo: Suscripción a cambios en citas
+const subscribeToAppointments = (
+  onUpdate: (appointments: Appointment[]) => void
+) => {
+  const q = query(collection(db, "appointments"), orderBy("date", "desc"));
+
+  return onSnapshot(q, (snapshot) => {
+    const appointments = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    onUpdate(appointments);
+  });
 };
 ```
 
@@ -243,9 +354,73 @@ const fetchWeather = async () => {
   "android": "expo start --android",
   "ios": "expo start --ios",
   "web": "expo start --web",
-  "lint": "expo lint"
+  "lint": "expo lint",
+  "test": "jest"
 }
 ```
+
+## Testing
+
+La aplicación incluye una suite completa de pruebas para garantizar la calidad del código y la funcionalidad de los componentes.
+
+### Ejecutar Pruebas
+
+```bash
+# Ejecutar todas las pruebas
+npm run test
+
+# Ejecutar pruebas en modo watch
+npx jest --watch
+
+# Ejecutar pruebas con cobertura
+npx jest --coverage
+
+# Ejecutar un archivo de prueba específico
+npx jest __tests__/appointments.service.test.ts
+
+# Ejecutar pruebas con salida detallada
+npx jest --verbose
+```
+
+### Cobertura de Pruebas
+
+El proyecto incluye las siguientes pruebas:
+
+#### Servicios
+
+- ✅ **Appointments Service**: Pruebas de CRUD de citas
+  - `getAppointments()`: Obtiene todas las citas
+  - `subscribeToAppointments()`: Suscripción en tiempo real
+- ✅ **Categories Service**: Pruebas de CRUD de categorías
+  - `getCategories()`: Obtiene todas las categorías
+  - `subscribeToCategories()`: Suscripción en tiempo real
+
+#### Autenticación
+
+- ✅ **Login**: Validación de esquemas y componente
+- ✅ **Register**: Validación de esquemas y componente
+- ✅ **useAuth Hook**: Pruebas del hook de autenticación
+
+#### Integraciones
+
+- ✅ **OpenWeather Core**: Funciones auxiliares
+  - `iconToEmoji()`: Conversión de códigos a emojis
+  - `buildWeatherUrl()`: Construcción de URLs
+- ✅ **OpenWeather API**: Integración completa
+  - `getCurrentWeatherByCity()`: Obtención de datos climáticos
+  - Validación de API key
+
+### Capturas de Pruebas
+
+<!-- Agregar captura de pantalla de la ejecución de pruebas -->
+<div align="left">
+  <sub><b>🧪 Ejecución de Pruebas</b></sub>
+</div>
+
+<!-- Agregar captura de pantalla del reporte de cobertura -->
+<div align="left">
+  <sub><b>📊 Reporte de Cobertura</b></sub>
+</div>
 
 ## Dependencias Principales
 
@@ -280,8 +455,40 @@ const fetchWeather = async () => {
 1. Crear proyecto en [Firebase Console](https://console.firebase.google.com/)
 2. Habilitar Authentication con Email/Password
 3. Configurar dominio autorizado
-4. Obtener configuración del proyecto
+4. Crear una app web
+
+<div align="left">
+  <img src="assets/screenshots/create-app-by-firebase.png" width="400" alt="Home with Weather"/>
+</div>
+
 5. Llenar las variables de entorno en el archivo `.env`
+6. Activar firestore
+7. Crear reglas de firestore
+
+```typescript
+
+  rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+
+    // Colección de categorías
+    match /categories/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Colección de citas
+    match /appointments/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    // (Opcional) cualquier otra colección autenticada
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}
+```
 
 ## Configuración de OpenWeather
 
@@ -342,19 +549,27 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](./LICENSE) para más det
 
 ## Roadmap
 
-### Version 1.1 (Próximamente)
+### Version 1.1 (Completado) ✅
 
-- [ ] Gestión completa de citas médicas
+- [x] Gestión completa de citas médicas (CRUD)
+- [x] Gestión de categorías (CRUD)
+- [x] Sincronización en tiempo real con Firebase
+- [x] Suite de pruebas con Jest
+- [x] Integración con Firebase Firestore
+
+### Version 1.2 (Próximamente)
+
 - [ ] Calendario de citas integrado
 - [ ] Notificaciones push
 - [ ] Perfil de usuario extendido
+- [ ] Filtros y búsqueda de citas
 
-### Version 1.2
+### Version 1.3
 
 - [ ] Modo offline mejorado
-- [ ] Sincronización de datos
 - [ ] Soporte multi-idioma
 - [ ] Temas personalizables
+- [ ] Exportación de datos
 
 ---
 

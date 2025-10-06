@@ -1,4 +1,12 @@
-
+import { auth } from "@/src/libs/firebase";
+import {
+  User,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import React, {
   createContext,
   useContext,
@@ -6,62 +14,26 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  sendEmailVerification,
-} from "firebase/auth";
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { auth } from "@/src/libs/firebase";
 
 type LoginPayload = Readonly<{
   email: string;
   password: string;
-  remember?: boolean;
 }>;
 
 type AuthContextType = {
   user: User | null;
-  loading: boolean; 
+  loading: boolean;
   isInitializing: boolean;
-  
   login: (p: LoginPayload) => Promise<void>;
-  register: (p: Omit<LoginPayload, "remember">) => Promise<void>;
+  register: (p: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
-  // estados UI
   isAuthenticating: boolean;
   authError: string | null;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
-
-async function setRememberFlag(remember: boolean) {
-  if (!remember) return;
-  if (Platform.OS === "web") return;
-  try {
-    const ok = await SecureStore.isAvailableAsync();
-    if (ok) await SecureStore.setItemAsync("remember", "1");
-  } catch {
-    
-  }
-}
-
-async function clearRememberFlag() {
-  if (Platform.OS === "web") return;
-  try {
-    const ok = await SecureStore.isAvailableAsync();
-    if (ok) await SecureStore.deleteItemAsync("remember");
-  } catch {
-    
-  }
-}
-
 
 function mapFirebaseError(code?: string) {
   switch (code) {
@@ -93,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // se apaga cuando onAuthStateChanged responde
+  const [loading, setLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -107,27 +79,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const clearError = () => setAuthError(null);
 
-  
   const login: (p: LoginPayload) => Promise<void> = async ({
     email,
     password,
-    remember = false,
   }) => {
     setIsAuthenticating(true);
     setAuthError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      await setRememberFlag(remember);
+      // Firebase persiste automáticamente con SecureStore
     } catch (err) {
       const code = (err as { code?: string }).code;
       setAuthError(mapFirebaseError(code));
-      throw err; 
+      throw err;
     } finally {
       setIsAuthenticating(false);
     }
   };
 
-  const register: (p: Omit<LoginPayload, "remember">) => Promise<void> = async ({
+  const register: (p: LoginPayload) => Promise<void> = async ({
     email,
     password,
   }) => {
@@ -135,7 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthError(null);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      
       try {
         await sendEmailVerification(cred.user);
       } catch {}
@@ -150,8 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     setAuthError(null);
-    await clearRememberFlag();
     await signOut(auth);
+    // Firebase limpia automáticamente la sesión de SecureStore
   };
 
   const refresh = async () => {
@@ -165,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     () => ({
       user,
       loading,
-      isInitializing: loading, 
+      isInitializing: loading,
       login,
       register,
       logout,

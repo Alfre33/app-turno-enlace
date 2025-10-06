@@ -1,4 +1,4 @@
-
+import Constants from "expo-constants";
 import { Link } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -10,7 +10,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Constants from "expo-constants";
 
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,10 +18,14 @@ type WeatherResp = {
   name: string;
   sys?: { country?: string };
   weather?: Array<{ description?: string; icon?: string }>;
-  main?: { temp?: number; temp_min?: number; temp_max?: number; humidity?: number };
+  main?: {
+    temp?: number;
+    temp_min?: number;
+    temp_max?: number;
+    humidity?: number;
+  };
   wind?: { speed?: number };
 };
-
 
 const extra = (Constants.expoConfig?.extra ??
   (Constants as any)?.manifest?.extra ??
@@ -44,7 +47,6 @@ export default function HomeScreen() {
     return "Buenas noches";
   }, []);
 
-
   const [city, setCity] = useState("");
   const [wLoading, setWLoading] = useState(false);
   const [wError, setWError] = useState<string | null>(null);
@@ -60,7 +62,9 @@ export default function HomeScreen() {
       return;
     }
     if (!API_KEY) {
-      setWError("Falta EXPO_PUBLIC_OPENWEATHER_API_KEY en tu .env o extra en app.config.ts.");
+      setWError(
+        "Falta EXPO_PUBLIC_OPENWEATHER_API_KEY en tu .env o extra en app.config.ts."
+      );
       return;
     }
     if (!/^[0-9a-f]{32}$/i.test(API_KEY)) {
@@ -124,12 +128,23 @@ export default function HomeScreen() {
             {user?.displayName ?? user?.email ?? "Hola!!!"}
           </Text>
           <Text style={styles.subtitle}>
-           Bienvenido a Turno Enlace. Explora tus citas y gestiona tu perfil fácilmente.
+            Bienvenido a Turno Enlace. Explora tus citas y gestiona tu perfil
+            fácilmente.
           </Text>
 
           <Link href="/(app)/profile" asChild>
             <Pressable style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>Ver Perfil</Text>
+            </Pressable>
+          </Link>
+          <Link href="/(app)/categories" asChild>
+            <Pressable style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Categorias</Text>
+            </Pressable>
+          </Link>
+          <Link href="/(app)/appointments" asChild>
+            <Pressable style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Citas</Text>
             </Pressable>
           </Link>
 
