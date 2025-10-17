@@ -45,5 +45,13 @@
       "typedRoutes": true,
       "reactCompiler": true
     }
+  },
+  "extra": {
+    "ios": {
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Se usa Face ID/Touch ID para iniciar sesión."
+      }
   }
+}
+
 }

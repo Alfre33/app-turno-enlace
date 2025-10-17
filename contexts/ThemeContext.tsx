@@ -24,7 +24,7 @@ const ThemeCtx = createContext<{
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const sys = useColorScheme(); // "light" | "dark" | null
+  const sys = useColorScheme(); 
   const initial = (sys ?? "light") as ThemeMode;
   const [mode, setMode] = useState<ThemeMode>(initial);
 

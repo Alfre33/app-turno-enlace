@@ -17,7 +17,7 @@ export const tokens = {
 
 export const palette = {
   light: {
-    primary: "#2563EB",       // azul 600
+    primary: "#2563EB",       
     primaryOn: "#FFFFFF",
     primaryMuted: "#D8E2FF",
     bg: "#F3F6FC",
@@ -30,7 +30,7 @@ export const palette = {
     inputPlaceholder: "#94A3B8",
   },
   dark: {
-    primary: "#3B82F6",       // azul 500
+    primary: "#3B82F6",       
     primaryOn: "#0B1220",
     primaryMuted: "#1E3A8A",
     bg: "#0B1220",

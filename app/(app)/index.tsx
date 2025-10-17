@@ -1,5 +1,5 @@
-
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
@@ -23,10 +23,10 @@ type WeatherResp = {
   wind?: { speed?: number };
 };
 
-
-const extra = (Constants.expoConfig?.extra ??
-  (Constants as any)?.manifest?.extra ??
-  {}) as any;
+const extra =
+  (Constants.expoConfig?.extra ??
+    (Constants as any)?.manifest?.extra ??
+    {}) as any;
 
 const API_KEY: string | undefined =
   (process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY as string | undefined)?.trim() ??
@@ -44,7 +44,13 @@ export default function HomeScreen() {
     return "Buenas noches";
   }, []);
 
+const handleLock = async () => {
+  await SecureStore.setItemAsync("LOCKED", "1");
+  router.replace("/(auth)/login");
+};
 
+
+  // ---- Clima ----
   const [city, setCity] = useState("");
   const [wLoading, setWLoading] = useState(false);
   const [wError, setWError] = useState<string | null>(null);
@@ -124,7 +130,7 @@ export default function HomeScreen() {
             {user?.displayName ?? user?.email ?? "Hola!!!"}
           </Text>
           <Text style={styles.subtitle}>
-           Bienvenido a Turno Enlace. Explora tus citas y gestiona tu perfil fácilmente.
+            Bienvenido a Turno Enlace. Explora tus citas y gestiona tu perfil fácilmente.
           </Text>
 
           <Link href="/(app)/profile" asChild>
@@ -134,22 +140,32 @@ export default function HomeScreen() {
           </Link>
 
           <Pressable
-            onPress={logout}
-            disabled={isAuthenticating}
+            onPress={handleLock}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.secondaryButton,
               pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>Bloquear</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={logout}
+            disabled={isAuthenticating}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              { marginTop: 10, alignItems: "center" },
+              pressed && { opacity: 0.7 },
               isAuthenticating && styles.disabled,
             ]}
           >
-            <Text style={styles.secondaryButtonText}>
-              {isAuthenticating ? "Signing out..." : "Salir"}
+            <Text style={[styles.secondaryButtonText, { fontSize: 14, opacity: 0.8 }]}>
+              {isAuthenticating ? "Cerrando..." : "Cerrar sesión"}
             </Text>
           </Pressable>
         </View>
 
-        {/* ---- Clima rápido dentro del Home ---- */}
         <View style={styles.weatherCard}>
           <Text style={styles.weatherTitle}>Clima rápido</Text>
 

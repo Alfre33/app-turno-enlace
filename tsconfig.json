@@ -1,7 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "types": ["jest"],
+    "types": ["jest", "react", "react-native"],
     "target": "ES2020",
     "module": "ESNext",
     "jsx": "react-native",
@@ -10,21 +10,17 @@
     "allowJs": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/src/*": [
-        "./src/*"
-      ]
+      "@/*": ["./*"],
+      "@/src/*": ["./src/*"]
     },
-    "customConditions": [
-      "react-native",
-      "development",
-      "browser"
-    ]
+    "customConditions": ["react-native", "development", "browser"],
+
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "noEmit": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+"include": ["**/*.ts", "**/*.tsx", "src/types/**/*.d.ts"]
+
 }

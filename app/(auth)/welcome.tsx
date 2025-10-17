@@ -15,14 +15,12 @@ export default function Welcome() {
       style={[styles.safe, { backgroundColor: theme.colors.primaryMuted }]}
       edges={["top", "right", "left", "bottom"]}
     >
-      {/* Toggle flotante para que no empuje el layout */}
       <View style={styles.toggle}>
         <Button variant="solid" size="sm" rounded="lg" onPress={toggle}>
           {theme.mode === "dark" ? "☀️ Light" : "🌙 Dark"}
         </Button>
       </View>
 
-      {/* Contenedor que SI ocupa toda la altura */}
       <View style={styles.body}>
         <View
           style={[

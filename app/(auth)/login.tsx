@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
@@ -16,6 +16,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as LocalAuth from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 
 import { LoginFormValues, loginSchema } from "@/constants/schemas/login";
 import { tokens } from "@/constants/theme";
@@ -42,28 +44,103 @@ export default function LoginScreen() {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { login, isAuthenticating, authError, clearError, refresh } = useAuth();
+  const auth = useAuth();
+  const { user, login, isAuthenticating, authError, clearError, refresh } = auth;
+
+  const [bioAvailableLocal, setBioAvailableLocal] = useState(false);
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS === "web") return setBioAvailableLocal(false);
+      try {
+        const hasHw = await LocalAuth.hasHardwareAsync();
+        const enrolled = await LocalAuth.isEnrolledAsync();
+        setBioAvailableLocal(Boolean(hasHw && enrolled));
+      } catch {
+        setBioAvailableLocal(false);
+      }
+    })();
+  }, []);
+
+  const biometricAvailable: boolean =
+    (auth as any)?.biometricAvailable ?? bioAvailableLocal;
+  const ctxLoginWithBio: undefined | (() => Promise<boolean>) =
+    (auth as any)?.loginWithBiometrics;
+
+  const notifySuccess = (msg: string) => {
+    if (Platform.OS === "android") ToastAndroid.show(msg, ToastAndroid.SHORT);
+    else Alert.alert("Éxito", msg);
+  };
 
   const onSubmit = useCallback(
     async (values: LoginFormValues) => {
       try {
-        await login(values); // valida contra Firebase
-
-        // ✅ mensaje de éxito (Android -> Toast, iOS/Web -> Alert)
-        if (Platform.OS === "android") {
-          ToastAndroid.show("Usuario autenticado exitosamente", ToastAndroid.SHORT);
-        } else {
-          Alert.alert("Éxito", "Usuario autenticado exitosamente");
-        }
-
-        // Navega al área privada. Pasamos un flag por si quieres mostrar banner en Home.
-        router.replace("/(app)/?welcome=1");
+        await login(values);
+        await SecureStore.deleteItemAsync("LOCKED").catch(() => {});
+        notifySuccess("Usuario autenticado exitosamente");
+        router.replace("/(app)");
       } catch {
-        // El contexto ya setea authError
       }
     },
     [login]
   );
+  const tryingBioRef = useRef(false);
+
+  const attemptBiometric = useCallback(async () => {
+    if (tryingBioRef.current) return;
+    tryingBioRef.current = true;
+
+    try {
+      let ok = false;
+
+      if (ctxLoginWithBio) {
+        ok = await ctxLoginWithBio();
+      } else {
+        const hasHw = await LocalAuth.hasHardwareAsync();
+        const enrolled = await LocalAuth.isEnrolledAsync();
+        if (!hasHw || !enrolled) {
+          Alert.alert("Biometría no disponible", "Configura tu huella o FaceID.");
+          return;
+        }
+        const res = await LocalAuth.authenticateAsync({
+          promptMessage: "Desbloquear",
+          cancelLabel: "Cancelar",
+          disableDeviceFallback: false,
+        });
+        ok = res.success;
+      }
+
+      if (!ok) return; 
+
+      await refresh();
+      await SecureStore.deleteItemAsync("LOCKED").catch(() => {});
+
+      if (!auth.user) {
+        Alert.alert(
+          "Sin sesión activa",
+          "Para usar la huella primero inicia una vez con correo y contraseña en este dispositivo."
+        );
+        return;
+      }
+
+      notifySuccess("Autenticado con huella/FaceID");
+      router.replace("/(app)");
+    } finally {
+      tryingBioRef.current = false;
+    }
+  }, [ctxLoginWithBio, refresh, auth.user]);
+
+  useEffect(() => {
+    (async () => {
+      const locked = await SecureStore.getItemAsync("LOCKED").catch(() => null);
+      if (locked === "1" && user && biometricAvailable) {
+        await attemptBiometric();
+      }
+    })();
+  }, [user, biometricAvailable, attemptBiometric]);
+
+  useEffect(() => {
+    if (user) router.replace("/(app)");
+  }, [user]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -91,7 +168,6 @@ export default function LoginScreen() {
         >
           <HeaderHero source={require("@/assets/images/logo-turno-enlace.png")} />
 
-          {/* Error banner */}
           {authError ? (
             <Pressable
               style={[
@@ -112,7 +188,6 @@ export default function LoginScreen() {
             </Pressable>
           ) : null}
 
-          {/* Card */}
           <View style={[styles.card, { backgroundColor: t.colors.bg }]}>
             <View style={{ gap: 16 }}>
               <View style={styles.header}>
@@ -121,7 +196,7 @@ export default function LoginScreen() {
                 </Text>
               </View>
 
-              {/* Email */}
+
               <Controller
                 control={control}
                 name="email"
@@ -157,8 +232,6 @@ export default function LoginScreen() {
                   </View>
                 )}
               />
-
-              {/* Password */}
               <Controller
                 control={control}
                 name="password"
@@ -202,7 +275,6 @@ export default function LoginScreen() {
                 )}
               />
 
-              {/* Submit */}
               <Button
                 fullWidth
                 disabled={isAuthenticating || isSubmitting}
@@ -212,14 +284,26 @@ export default function LoginScreen() {
               </Button>
             </View>
 
-            {/* Divider */}
             <View style={styles.dividerRow}>
               <View style={[styles.divider, { backgroundColor: t.colors.text }]} />
               <Text style={[styles.subTitle, { color: t.colors.text }]}>O</Text>
               <View style={[styles.divider, { backgroundColor: t.colors.text }]} />
             </View>
 
-            <View style={{ gap: 16 }}>
+            {biometricAvailable ? (
+              <Button
+                fullWidth
+                variant="outline"
+                rounded="sm"
+                onPress={attemptBiometric}
+                disabled={isAuthenticating}
+                left={<Text></Text>}
+              >
+                {isAuthenticating ? "Verificando..." : "Iniciar con huella "}
+              </Button>
+            ) : null}
+
+            <View style={{ gap: 16, marginTop: 8 }}>
               <Button
                 fullWidth
                 variant="outline"

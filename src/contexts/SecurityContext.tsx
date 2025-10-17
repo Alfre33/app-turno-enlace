@@ -1,22 +1,24 @@
-
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   User,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   signOut,
+  sendEmailVerification,
 } from "firebase/auth";
 import * as SecureStore from "expo-secure-store";
 import * as LocalAuth from "expo-local-authentication";
-
 import { auth } from "@/src/libs/firebase";
-import { router } from "expo-router";
-
 
 export type LoginPayload = { email: string; password: string; remember?: boolean };
-export type RegisterPayload = Omit<LoginPayload, "remember">;
+type RegisterPayload = Omit<LoginPayload, "remember">;
+
+const SECURE_KEYS = {
+  REMEMBER: "remember",
+  BIOMETRIC_ENABLED: "biometric_enabled",
+  LAST_BIOMETRIC_AT: "last_biometric_at",
+} as const;
 
 export type AuthContextType = {
   user: User | null;
@@ -33,32 +35,38 @@ export type AuthContextType = {
   authError: string | null;
 
   biometricAvailable: boolean;
-  loginWithBiometrics: () => Promise<boolean>;
+  biometricEnabled: boolean;
+  setBiometricEnabled: (v: boolean) => Promise<void>;
 };
 
-export const mapFirebaseError = (code?: string) => {
+export function mapFirebaseError(code?: string) {
   switch (code) {
-    case "auth/invalid-email": return "El formato del correo no es válido.";
-    case "auth/missing-password": return "Ingresa tu contraseña.";
-    case "auth/user-disabled": return "Tu cuenta está deshabilitada.";
-    case "auth/user-not-found": return "No existe una cuenta con ese correo.";
+    case "auth/invalid-email":
+      return "El formato del correo no es válido.";
+    case "auth/missing-password":
+      return "Ingresa tu contraseña.";
+    case "auth/user-disabled":
+      return "Tu cuenta está deshabilitada.";
+    case "auth/user-not-found":
+      return "No existe una cuenta con ese correo.";
     case "auth/wrong-password":
     case "auth/invalid-credential":
     case "auth/invalid-login-credentials":
       return "Correo o contraseña incorrectos.";
-    case "auth/email-already-in-use": return "Ese correo ya está registrado.";
-    case "auth/weak-password": return "La contraseña es muy débil.";
-    case "auth/too-many-requests": return "Demasiados intentos. Intenta más tarde.";
-    case "auth/network-request-failed": return "Sin conexión. Verifica tu red.";
-
-    case "auth/biometric-failed": return "No se pudo verificar tu huella/FaceID.";
-    case "auth/no-session": return "No hay sesión activa. Inicia con correo y contraseña.";
-    case "auth/session-expired": return "Tu sesión expiró. Inicia con contraseña para continuar.";
-
-    case "auth/email-not-verified": return "Verifica tu correo para continuar.";
-    default: return "No pudimos completar la acción. Intenta de nuevo.";
+    case "auth/email-already-in-use":
+      return "Ese correo ya está registrado.";
+    case "auth/weak-password":
+      return "La contraseña es muy débil.";
+    case "auth/too-many-requests":
+      return "Demasiados intentos. Intenta más tarde.";
+    case "auth/network-request-failed":
+      return "Sin conexión. Verifica tu red.";
+    case "auth/biometric-failed":
+      return "No se pudo verificar tu identidad con biometría.";
+    default:
+      return "No pudimos completar la acción. Intenta de nuevo.";
   }
-};
+}
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -67,10 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    const init = async () => {
       try {
         const hasHw = await LocalAuth.hasHardwareAsync();
         const enrolled = await LocalAuth.isEnrolledAsync();
@@ -78,9 +88,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         setBiometricAvailable(false);
       }
-    })();
+      const enabled = (await SecureStore.getItemAsync(SECURE_KEYS.BIOMETRIC_ENABLED)) === "1";
+      setBiometricEnabledState(enabled);
+    };
+    init();
   }, []);
-
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -92,6 +104,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = () => setAuthError(null);
 
+  const setBiometricEnabled = async (v: boolean) => {
+    setBiometricEnabledState(v);
+    await SecureStore.setItemAsync(SECURE_KEYS.BIOMETRIC_ENABLED, v ? "1" : "0").catch(() => {});
+  };
+
+  const promptBiometric = async (reason = "Verifica tu identidad") => {
+    if (!biometricAvailable || !biometricEnabled) return true; 
+    try {
+      const res = await LocalAuth.authenticateAsync({
+        promptMessage: reason,
+        cancelLabel: "Cancelar",
+        fallbackLabel: "Usar código",
+        disableDeviceFallback: false,
+      });
+      if (res.success) {
+        await SecureStore.setItemAsync(SECURE_KEYS.LAST_BIOMETRIC_AT, String(Date.now())).catch(() => {});
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
 
   const login = async ({ email, password, remember = false }: LoginPayload) => {
     setIsAuthenticating(true);
@@ -100,22 +135,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cred = await signInWithEmailAndPassword(auth, email, password);
 
       if (cred.user && !cred.user.emailVerified) {
-        try { await sendEmailVerification(cred.user); } catch {}
+        try {
+          await sendEmailVerification(cred.user);
+        } catch {}
         const err = { code: "auth/email-not-verified" };
-        setAuthError(mapFirebaseError(err.code));
+        setAuthError("Verifica tu correo para continuar. Te enviamos un email.");
+        throw err as any;
+      }
+
+      const ok = await promptBiometric("Autenticación biométrica requerida");
+      if (!ok) {
+        await signOut(auth);
+        const err = { code: "auth/biometric-failed" };
+        setAuthError(mapFirebaseError("auth/biometric-failed"));
         throw err as any;
       }
 
       if (remember) {
-        await SecureStore.setItemAsync("remember", "1").catch(() => {});
-        await SecureStore.setItemAsync("LAST_EMAIL", email).catch(() => {});
+        await SecureStore.setItemAsync(SECURE_KEYS.REMEMBER, "1").catch(() => {});
       } else {
-        await SecureStore.deleteItemAsync("remember").catch(() => {});
-        await SecureStore.deleteItemAsync("LAST_EMAIL").catch(() => {});
+        await SecureStore.deleteItemAsync(SECURE_KEYS.REMEMBER).catch(() => {});
       }
     } catch (e: any) {
       const code = e?.code as string | undefined;
-      if (code !== "auth/email-not-verified") setAuthError(mapFirebaseError(code));
+      if (code !== "auth/email-not-verified" && code !== "auth/biometric-failed") {
+        setAuthError(mapFirebaseError(code));
+      }
       throw e;
     } finally {
       setIsAuthenticating(false);
@@ -127,7 +172,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      try { await sendEmailVerification(cred.user); } catch {}
+      try {
+        await sendEmailVerification(cred.user);
+      } catch {}
     } catch (e: any) {
       setAuthError(mapFirebaseError(e?.code));
       throw e;
@@ -136,20 +183,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
-
-
-const logout = async () => {
-  setAuthError(null);
-  try {
-    await SecureStore.deleteItemAsync("LOCKED").catch(() => {});
-    await SecureStore.deleteItemAsync("remember").catch(() => {});
-  } finally {
+  const logout = async () => {
+    setAuthError(null);
+    await SecureStore.deleteItemAsync(SECURE_KEYS.REMEMBER).catch(() => {});
     await signOut(auth);
-    router.replace("/(auth)/login");
-  }
-};
-
+  };
 
   const refresh = async () => {
     if (auth.currentUser) {
@@ -158,49 +196,33 @@ const logout = async () => {
     }
   };
 
-const loginWithBiometrics = async (): Promise<boolean> => {
-  setIsAuthenticating(true);
-  setAuthError(null);
-  try {
-    const res = await LocalAuth.authenticateAsync({
-      promptMessage: "Usar huella o FaceID",
-      cancelLabel: "Cancelar",
-      disableDeviceFallback: false,
-    });
-
-    if (!res.success) {
-      setAuthError(mapFirebaseError("auth/biometric-failed"));
-      return false;
-    }
-    if (!auth.currentUser) {
-      setAuthError(mapFirebaseError("auth/no-session"));
-      return false;
-    }
-    return true;
-  } catch (e: any) {
-    setAuthError(mapFirebaseError(e?.code));
-    return false;
-  } finally {
-    setIsAuthenticating(false);
-  }
-};
-
   const value = useMemo<AuthContextType>(
     () => ({
       user,
       loading,
       isInitializing: loading,
+
       login,
       register,
       logout,
       refresh,
       clearError,
+
+      isAuthenticating,
+      authError,
+
+      biometricAvailable,
+      biometricEnabled,
+      setBiometricEnabled,
+    }),
+    [
+      user,
+      loading,
       isAuthenticating,
       authError,
       biometricAvailable,
-      loginWithBiometrics, 
-    }),
-    [user, loading, isAuthenticating, authError, biometricAvailable]
+      biometricEnabled,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -208,6 +230,6 @@ const loginWithBiometrics = async (): Promise<boolean> => {
 
 export const useAuthContext = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };

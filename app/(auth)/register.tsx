@@ -65,11 +65,6 @@ export default function RegisterScreen() {
       try {
         console.log("Login with", values);
 
-        // await registerUser({
-        //   fullName: values.fullName,
-        //   email: values.email,
-        //   password: values.password,
-        // });
       } catch {}
     },
     [registerUser]
@@ -112,7 +107,6 @@ export default function RegisterScreen() {
           ) : null}
 
           <View style={[styles.card, { backgroundColor: t.colors.bg }]}>
-            {/* Nombre completo */}
             <Controller
               control={control}
               name="fullName"
@@ -127,7 +121,6 @@ export default function RegisterScreen() {
               )}
             />
 
-            {/* Email */}
             <Controller
               control={control}
               name="email"
@@ -143,7 +136,6 @@ export default function RegisterScreen() {
               )}
             />
 
-            {/* Password */}
             <Controller
               control={control}
               name="password"
@@ -159,7 +151,6 @@ export default function RegisterScreen() {
               )}
             />
 
-            {/* Confirm */}
             <Controller
               control={control}
               name="confirmPassword"
@@ -175,7 +166,6 @@ export default function RegisterScreen() {
               )}
             />
 
-            {/* Términos */}
             <Controller
               control={control}
               name="acceptTerms"
