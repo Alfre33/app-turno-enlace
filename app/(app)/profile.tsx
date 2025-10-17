@@ -1,5 +1,6 @@
+import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +14,7 @@ const maskEmail = (email: string) => {
 
 export default function ProfileScreen() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const maskedEmail = useMemo(() => {
     return user?.email ? maskEmail(user.email) : "";
@@ -28,14 +30,14 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.avatar}>
             <Text style={styles.avatarInitials}>
-              {user?.name
+              {user?.displayName
                 ?.split(" ")
                 .map((part) => part[0]?.toUpperCase())
                 .slice(0, 2)
                 .join("") || "TN"}
             </Text>
           </View>
-          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.name}>{user?.displayName}</Text>
           <Text style={styles.email}>{maskedEmail}</Text>
 
           <View style={styles.infoRow}>
@@ -45,15 +47,25 @@ export default function ProfileScreen() {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Member since</Text>
             <Text style={styles.infoValue}>
-              {user?.createdAt
+              {user?.metadata?.creationTime
                 ? new Intl.DateTimeFormat("en", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
-                  }).format(new Date(user.createdAt))
+                  }).format(new Date(user.metadata.creationTime))
                 : "Just now"}
             </Text>
           </View>
+
+          {/* Botón de Configuración de Privacidad */}
+          <TouchableOpacity
+            style={styles.privacyButton}
+            onPress={() => router.push("/(app)/privacy-settings")}
+          >
+            <Text style={styles.privacyButtonIcon}>🔐</Text>
+            <Text style={styles.privacyButtonText}>Configuración de Privacidad</Text>
+            <Text style={styles.privacyButtonArrow}>›</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -125,5 +137,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     fontWeight: "500",
+  },
+  privacyButton: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginTop: theme.space.lg,
+    backgroundColor: theme.colors.primary + "15",
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+  },
+  privacyButtonIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  privacyButtonText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  privacyButtonArrow: {
+    fontSize: 28,
+    color: theme.colors.primary,
+    fontWeight: "300",
   },
 });

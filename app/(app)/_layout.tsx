@@ -17,6 +17,13 @@ export default function AppLayout() {
           title: "Profile",
         }}
       />
+      <Stack.Screen
+        name="privacy-settings"
+        options={{
+          title: "Configuración de Privacidad",
+          headerBackTitle: "Atrás",
+        }}
+      />
     </Stack>
   );
 }

@@ -130,3 +130,187 @@
 - Procedimiento de revocación de sesiones activas
 - Logs de seguridad para auditoría
 - Contactos de emergencia para reportes de seguridad
+
+## Cumplimiento Normativo
+
+### GDPR (Reglamento General de Protección de Datos - UE)
+
+#### Principios Implementados:
+1. **Licitud, lealtad y transparencia**
+   - ✅ Política de privacidad clara y accesible
+   - ✅ Consentimiento explícito al registrarse (checkbox de términos)
+   - ✅ Información sobre uso de datos disponible
+
+2. **Limitación de la finalidad**
+   - ✅ Datos recopilados solo para gestión de citas y autenticación
+   - ✅ No se comparten datos con terceros (excepto proveedores de servicio)
+
+3. **Minimización de datos**
+   - ✅ Solo se solicitan: email, nombre, contraseña
+   - ✅ Datos de citas y categorías bajo control del usuario
+
+4. **Exactitud**
+   - ✅ Usuario puede actualizar su información en cualquier momento
+   - ✅ Función de edición de perfil disponible
+
+5. **Limitación del plazo de conservación**
+   - ✅ Datos eliminados al borrar la cuenta
+   - ✅ Cuentas inactivas notificadas antes de eliminación
+
+6. **Integridad y confidencialidad**
+   - ✅ Cifrado en tránsito (TLS 1.3)
+   - ✅ Cifrado en reposo (Firebase)
+   - ✅ Almacenamiento seguro (Keychain/Keystore)
+
+#### Derechos del Usuario Implementados:
+
+- **Derecho de acceso** (Art. 15): Ver toda la información almacenada
+- **Derecho de rectificación** (Art. 16): Editar datos personales
+- **Derecho de supresión** (Art. 17): "Derecho al olvido" - Eliminar cuenta
+- **Derecho a la portabilidad** (Art. 20): Exportar datos en formato JSON
+- **Derecho de oposición** (Art. 21): Retirar consentimiento
+- **Derecho a la limitación del tratamiento** (Art. 18): Control sobre uso de datos
+
+#### Implementación Técnica:
+```typescript
+// Funcionalidades en app/(app)/privacy-settings.tsx:
+- handleExportData(): Exporta todos los datos del usuario
+- handleDeleteAccount(): Elimina cuenta y todos los datos
+- Links a Política de Privacidad y Términos
+```
+
+### CCPA/CPRA (California Consumer Privacy Act)
+
+#### Derechos del Consumidor Implementados:
+
+1. **Derecho a saber** (Right to Know)
+   - ✅ Política de privacidad detalla qué datos se recopilan
+   - ✅ Información sobre con quién se comparten (Firebase, OpenWeather)
+
+2. **Derecho a eliminar** (Right to Delete)
+   - ✅ Función de eliminación de cuenta implementada
+   - ✅ Proceso de eliminación en 30 días
+
+3. **Derecho a portabilidad** (Right to Portability)
+   - ✅ Exportación de datos en formato JSON
+   - ✅ Incluye todas las citas, categorías y perfil
+
+4. **Derecho a no discriminación** (Right to Non-Discrimination)
+   - ✅ No hay restricciones por ejercer derechos de privacidad
+
+5. **Derecho a limitar uso de información sensible** (CPRA)
+   - ✅ Solo se recopilan datos esenciales
+   - ✅ Contraseñas nunca almacenadas en texto plano
+
+#### Divulgaciones Requeridas:
+
+| Categoría de Datos | Propósito | Compartido con |
+|-------------------|-----------|----------------|
+| Email, Nombre | Autenticación | Firebase Auth |
+| Contraseña (hash) | Autenticación | Firebase Auth |
+| Citas médicas | Gestión personal | Firebase Firestore |
+| Categorías | Organización | Firebase Firestore |
+| Ciudad (opcional) | Información climática | OpenWeather API |
+
+### Medidas de Seguridad Técnicas
+
+#### 1. Cifrado en Tránsito
+```typescript
+// Todas las comunicaciones usan HTTPS
+- Firebase: TLS 1.3 automático
+- OpenWeather API: HTTPS obligatorio
+- Validación de certificados SSL/TLS
+```
+
+#### 2. Cifrado en Reposo
+```typescript
+// Firebase Firestore
+- Cifrado AES-256 automático
+- Claves gestionadas por Google Cloud KMS
+
+// Almacenamiento local
+- iOS: Keychain Services (kSecAttrAccessibleAfterFirstUnlock)
+- Android: EncryptedSharedPreferences con AES-256-GCM
+```
+
+#### 3. Gestión de Secretos
+```typescript
+// Implementación actual:
+✅ Variables de entorno para API keys
+✅ SecureStore para tokens de sesión
+✅ .env excluido del control de versiones
+
+// Recomendaciones de mejora:
+🔄 Considerar rotación automática de tokens
+🔄 Implementar secrets management service para producción
+```
+
+#### 4. Autenticación y Autorización
+```typescript
+// Firebase Authentication
+- Verificación de email obligatoria
+- Protección contra fuerza bruta integrada
+- Sesiones con expiración automática
+
+// Guards de navegación
+- AuthContext valida usuario en cada ruta protegida
+- Redirección automática si sesión expirada
+```
+
+## Auditoría de Seguridad
+
+### Checklist de Seguridad
+
+#### Nivel Básico (Implementado) ✅
+- [x] HTTPS en todas las comunicaciones
+- [x] Autenticación con Firebase
+- [x] Almacenamiento seguro con SecureStore
+- [x] Variables de entorno para secretos
+- [x] Validación de entradas de usuario
+- [x] Manejo seguro de errores
+- [x] Política de privacidad documentada
+- [x] Términos y condiciones documentados
+- [x] Función de exportación de datos
+- [x] Función de eliminación de cuenta
+
+#### Nivel Intermedio (Opcional para producción) 🔄
+- [ ] Certificate Pinning
+- [ ] Detección de jailbreak/root
+- [ ] Ofuscación de código
+- [ ] Rate limiting en el lado del cliente
+- [ ] Logs de auditoría detallados
+- [ ] Monitoreo de seguridad en tiempo real
+
+#### Nivel Avanzado (Para apps empresariales) ⚠️
+- [ ] Multi-factor authentication (MFA)
+- [ ] Biometría (Face ID / Touch ID)
+- [ ] Detección de fraude con ML
+- [ ] Penetration testing profesional
+- [ ] Certificación ISO 27001
+- [ ] SOC 2 Compliance
+
+## Reporte de Vulnerabilidades
+
+Si encuentras una vulnerabilidad de seguridad, por favor:
+
+1. **NO** la publiques públicamente
+2. Envía un email a: [tu-email-seguridad@ejemplo.com]
+3. Incluye:
+   - Descripción detallada de la vulnerabilidad
+   - Pasos para reproducir
+   - Impacto potencial
+   - Sugerencias de mitigación (opcional)
+
+**Tiempo de respuesta comprometido:** 48 horas
+
+## Recursos Adicionales
+
+- [OWASP Mobile Security](https://owasp.org/www-project-mobile-security/)
+- [Firebase Security Rules](https://firebase.google.com/docs/rules)
+- [Expo SecureStore Documentation](https://docs.expo.dev/versions/latest/sdk/securestore/)
+- [GDPR Official Text](https://gdpr-info.eu/)
+- [CCPA Official Text](https://oag.ca.gov/privacy/ccpa)
+
+---
+
+**Última actualización:** 17 de octubre de 2025

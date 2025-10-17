@@ -14,10 +14,11 @@
 - 🔐 **Autenticación Segura**: Login y registro con Firebase Authentication
 - 🔒 **Almacenamiento Cifrado**: Datos sensibles protegidos con Expo SecureStore
 - 🌤️ **Integración de APIs**: Consumo de OpenWeather API para información climática
-- 📂 **Gestión de Citas**: CRUD completo para administrar citas médicas
+- � **Gestión de Citas**: CRUD completo para administrar citas médicas
 - 📂 **Gestión de Categorías**: CRUD completo para organizar categorías de citas
-- 📱 **Diseño Responsivo**: Interfaz optimizada para dispositivos móviles
-- 🛡️ **Seguridad Avanzada**: Implementación de mejores prácticas de seguridad móvil
+- � **Configuración de Privacidad**: Exportar y eliminar datos (GDPR/CCPA)
+- �📱 **Diseño Responsivo**: Interfaz optimizada para dispositivos móviles
+- 🛡️ **Seguridad Avanzada**: TLS 1.3, AES-256, cumplimiento GDPR/CCPA
 - ✅ **Testing Completo**: Pruebas unitarias y de integración con Jest
 
 ## Tecnologías Utilizadas
@@ -321,20 +322,20 @@ const fetchWeather = async () => {
 
 ## Características de Seguridad
 
-### 1. Autenticación(FIREBASE AUTH)
+### 1. Autenticación (FIREBASE AUTH)
 
 - Login/registro con Firebase Auth
 - Verificación de email automática
 - Gestión de sesiones segura
 - Protección contra ataques de fuerza bruta
 
-### 2. Almacenamiento Seguro(EXPO SECURESTORE)
+### 2. Almacenamiento Seguro (EXPO SECURESTORE)
 
 - **Expo SecureStore** para datos sensibles
 - Cifrado nativo (iOS Keychain / Android Keystore)
 - Limpieza automática al cerrar sesión
 
-### 3. Validación de Datos(ZOD)
+### 3. Validación de Datos (ZOD)
 
 - Sanitización de entradas de usuario
 - Validación de formatos (email, API keys)
@@ -342,9 +343,18 @@ const fetchWeather = async () => {
 
 ### 4. Comunicaciones
 
-- HTTPS obligatorio para todas las APIs
+- HTTPS/TLS 1.3 obligatorio para todas las APIs
 - Timeouts configurados
 - Validación de respuestas
+
+### 5. Privacidad y Cumplimiento Normativo
+
+- ✅ **GDPR compliant**: Derechos de acceso, rectificación, portabilidad y eliminación
+- ✅ **CCPA/CPRA compliant**: Divulgación de prácticas y mecanismos de exclusión
+- 🔐 **Cifrado AES-256**: Datos en reposo cifrados automáticamente (Firebase)
+- 📋 **Documentación legal**: Política de privacidad y términos de servicio
+- 🗑️ **Derecho al olvido**: Eliminación completa de cuenta y datos
+- 📦 **Portabilidad**: Exportación de datos en formato JSON
 
 ## Scripts Disponibles
 
